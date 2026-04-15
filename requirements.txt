@@ -1,0 +1,39 @@
+# ── Core ──────────────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+requests>=2.31.0
+fastapi>=0.111.0
+uvicorn>=0.30.0
+
+# ── FREE LLM backends (pick at least one) ────────────────────────────────────
+groq>=0.9.0                    # FREE — console.groq.com
+google-generativeai>=0.7.0     # FREE — aistudio.google.com
+# ollama is local — no pip package needed, just install from ollama.ai
+
+# ── Paid LLM backends (optional) ─────────────────────────────────────────────
+anthropic>=0.25.0
+openai>=1.30.0
+
+# ── NLP ───────────────────────────────────────────────────────────────────────
+spacy>=3.7.0
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+scikit-learn>=1.4.0
+
+# ── Database ──────────────────────────────────────────────────────────────────
+sqlalchemy>=2.0.0
+psycopg[binary]>=3.2.1
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+streamlit>=1.35.0
+plotly>=5.22.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+numpy>=1.26.0
+pandas>=2.2.0
+
+# ── Multi-user & Background Features ──────────────────────────────────────────
+alembic>=1.13.0
+apscheduler>=3.10.4
+bcrypt>=4.1.0
+python-jose[cryptography]>=3.3.0
+streamlit-authenticator>=0.3.2
