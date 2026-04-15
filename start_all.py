@@ -1,9 +1,10 @@
 import subprocess
-import time
+import asyncio
 import sys
 import httpx
 import uvicorn
-from fastapi import FastAPI, Request
+import websockets
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import StreamingResponse
 import logging
 
@@ -16,9 +17,9 @@ app = FastAPI(title="BridgeBack Gateway")
 # ── Internal Ports ───────────────────────────────────────────────────────────
 STREAMLIT_PORT = 8501
 FASTAPI_PORT = 8000
-GATEWAY_PORT = 7860  # Hugging Face default
+GATEWAY_PORT = 7860
 
-# ── Proxy Logic ──────────────────────────────────────────────────────────────
+# ── Proxy Logic (HTTP) ──────────────────────────────────────────────────────
 async def proxy_request(request: Request, target_url: str):
     client = httpx.AsyncClient(base_url=target_url)
     url = request.url.path
@@ -28,17 +29,12 @@ async def proxy_request(request: Request, target_url: str):
     headers = dict(request.headers)
     headers.pop("host", None)
     
-    # Simple proxy for all methods
     method = request.method
     content = await request.body()
     
     try:
         response = await client.request(
-            method, 
-            url, 
-            headers=headers, 
-            content=content,
-            follow_redirects=False
+            method, url, headers=headers, content=content, follow_redirects=True
         )
         return StreamingResponse(
             response.aiter_raw(),
@@ -51,24 +47,41 @@ async def proxy_request(request: Request, target_url: str):
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 async def proxy_api(path: str, request: Request):
-    """Route all /api requests to the FastAPI backend."""
-    target = f"http://localhost:{FASTAPI_PORT}"
-    return await proxy_request(request, target)
+    return await proxy_request(request, f"http://localhost:{FASTAPI_PORT}")
+
+# ── WebSocket Bridge (Streamlit Fix) ─────────────────────────────────────────
+@app.websocket("/{path:path}")
+async def proxy_websocket(websocket: WebSocket, path: str):
+    """Bridge for Streamlit WebSockets."""
+    target_ws_url = f"ws://localhost:{STREAMLIT_PORT}/{path}"
+    await websocket.accept()
+    
+    try:
+        async with websockets.connect(target_ws_url) as target_ws:
+            async def forward_to_client():
+                async for message in target_ws:
+                    await websocket.send_text(message) if isinstance(message, str) else await websocket.send_bytes(message)
+
+            async def forward_to_target():
+                async for message in websocket.iter_text():
+                    await target_ws.send(message)
+
+            await asyncio.gather(forward_to_client(), forward_to_target())
+    except Exception as e:
+        logger.error(f"WS Bridge Error: {e}")
+    finally:
+        await websocket.close()
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 async def proxy_web(path: str, request: Request):
-    """Route everything else to Streamlit."""
-    target = f"http://localhost:{STREAMLIT_PORT}"
-    return await proxy_request(request, target)
+    return await proxy_request(request, f"http://localhost:{STREAMLIT_PORT}")
 
 # ── Process Management ───────────────────────────────────────────────────────
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "gateway":
-        # Run the gateway proxy
         uvicorn.run(app, host="0.0.0.0", port=GATEWAY_PORT)
     else:
         # 1. Start Streamlit
-        logger.info("Starting Streamlit...")
         st_proc = subprocess.Popen([
             "streamlit", "run", "app.py", 
             "--server.port", str(STREAMLIT_PORT), 
@@ -77,15 +90,14 @@ if __name__ == "__main__":
         ])
         
         # 2. Start FastAPI
-        logger.info("Starting FastAPI...")
         api_proc = subprocess.Popen([
             "uvicorn", "api.main:app", 
             "--host", "0.0.0.0", 
             "--port", str(FASTAPI_PORT)
         ])
         
-        # 3. Start Gateway in this process
-        logger.info(f"Starting Gateway on port {GATEWAY_PORT}...")
+        # 3. Start Gateway
+        logger.info(f"Starting Multi-Platform Gateway on port {GATEWAY_PORT}...")
         try:
             uvicorn.run(app, host="0.0.0.0", port=GATEWAY_PORT)
         finally:

@@ -23,16 +23,14 @@ jobs:
           pip install -r requirements.txt
           pip install pytest ruff
 
-      - name: Download spaCy model
-        run: python -m spacy download en_core_web_sm
-
       - name: Lint with ruff
         run: ruff check . --ignore E501
 
       - name: Run tests
         env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DEFAULT_LLM: ollama
+          DEFAULT_LLM: gemini
           DATABASE_URL: sqlite:///test_bridgeback.db
         run: pytest tests/ -v --tb=short
