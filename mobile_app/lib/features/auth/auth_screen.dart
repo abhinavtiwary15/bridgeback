@@ -27,7 +27,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final url = prefs.getString('bridgeback_api_base_url') ??
-        const String.fromEnvironment('API_URL', defaultValue: 'https://bridgeback-api.hf.space');
+        const String.fromEnvironment('API_URL', defaultValue: 'https://abhinavtiwary-bridgeback.hf.space');
     final key = prefs.getString('bridgeback_api_key') ??
         const String.fromEnvironment('API_AUTH_TOKEN', defaultValue: '');
     if (!mounted) return;

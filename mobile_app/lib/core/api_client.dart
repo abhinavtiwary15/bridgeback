@@ -7,7 +7,7 @@ const String _prefsApiKeyKey = 'bridgeback_api_key';
 
 /// Compile-time default (e.g. `--dart-define=API_URL=https://api.example.com`).
 const String _compileTimeApiUrl =
-    String.fromEnvironment('API_URL', defaultValue: 'https://bridgeback-api.hf.space');
+    String.fromEnvironment('API_URL', defaultValue: 'https://abhinavtiwary-bridgeback.hf.space');
 
 /// Optional shared gate key matching backend `API_AUTH_TOKEN`.
 const String _compileTimeApiKey =
