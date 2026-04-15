@@ -3,25 +3,25 @@
 import os
 import sys
 import uuid
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from data.database import (
+    get_or_create_profile,
+    get_sessions,
+    increment_connections,
     init_db,
     save_session,
-    get_sessions,
     update_profile_score,
-    increment_connections,
-    get_or_create_profile,
 )
-from data.models import SessionRecord, LLMResponse, NLPProfile
+from data.models import LLMResponse, NLPProfile, SessionRecord
 from services.chat_service import process_user_message
 from tracking.tracker import (
+    generate_weekly_insight,
     get_score_history,
     get_streak,
     get_total_connections,
-    generate_weekly_insight,
 )
 
 

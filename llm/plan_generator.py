@@ -5,14 +5,15 @@ low-barrier action plan. References specific people and places.
 """
 
 from __future__ import annotations
+
 from typing import List, Optional
 
-from data.models import NLPProfile, ReconnectionPlan, ReconnectionAction
+from community.event_matcher import find_events
+from config import DEFAULT_LLM
+from data.models import NLPProfile, ReconnectionAction, ReconnectionPlan
 from llm.message_drafter import draft_outreach_message
 from llm.rejection_trainer import generate_resilience_block
 from tracking.priority_engine import rank_relationships
-from community.event_matcher import find_events
-from config import DEFAULT_LLM
 
 
 def generate_plan(
@@ -34,57 +35,63 @@ def generate_plan(
 
     # ── Step 1: Drifted relationships (highest priority) ──────────────────
     drifted = [r for r in profile.relationship_signals if r.status == "drifted"]
-    for rel in drifted[:3]:          # cap at 3 reconnect actions
+    for rel in drifted[:3]:  # cap at 3 reconnect actions
         message = draft_outreach_message(
             target_name=rel.name,
             relationship_context=rel.last_mentioned_context,
             backend=backend,
         )
-        actions.append(ReconnectionAction(
-            type="reconnect_person",
-            target=rel.name,
-            rationale=(
-                f"You mentioned drifting from {rel.name}. "
-                f"Context: \"{rel.last_mentioned_context}\""
-            ),
-            action=f"Send a message to {rel.name} today.",
-            suggested_message=message,
-            difficulty="low",
-            timeframe="today",
-        ))
+        actions.append(
+            ReconnectionAction(
+                type="reconnect_person",
+                target=rel.name,
+                rationale=(
+                    f"You mentioned drifting from {rel.name}. "
+                    f'Context: "{rel.last_mentioned_context}"'
+                ),
+                action=f"Send a message to {rel.name} today.",
+                suggested_message=message,
+                difficulty="low",
+                timeframe="today",
+            )
+        )
 
     # ── Step 2: Active relationships (check-in nudge) ─────────────────────
     active = [r for r in profile.relationship_signals if r.status == "active"]
-    for rel in active[:1]:           # just one, don't overwhelm
-        actions.append(ReconnectionAction(
-            type="reconnect_person",
-            target=rel.name,
-            rationale=f"Keep the momentum going with {rel.name}.",
-            action=f"Plan something concrete with {rel.name} this week.",
-            suggested_message=None,
-            difficulty="low",
-            timeframe="this week",
-        ))
+    for rel in active[:1]:  # just one, don't overwhelm
+        actions.append(
+            ReconnectionAction(
+                type="reconnect_person",
+                target=rel.name,
+                rationale=f"Keep the momentum going with {rel.name}.",
+                action=f"Plan something concrete with {rel.name} this week.",
+                suggested_message=None,
+                difficulty="low",
+                timeframe="this week",
+            )
+        )
 
     # ── Step 3: Community events ──────────────────────────────────────────
     events = find_events(interests or [], location=location, limit=2)
     for event in events:
-        actions.append(ReconnectionAction(
-            type="community_event",
-            target=event["name"],
-            rationale=(
-                f"Low-pressure environment to meet new people. "
-                f"{event.get('rsvp_count', 0)} people attending."
-            ),
-            action=(
-                f"Attend {event['name']} at {event.get('venue', 'local venue')} — "
-                f"{event.get('date', '')} {event.get('time', '')}."
-            ),
-            suggested_message=None,
-            difficulty="medium",
-            timeframe="this week",
-            registration_link=event.get("registration_link"),
-        ))
+        actions.append(
+            ReconnectionAction(
+                type="community_event",
+                target=event["name"],
+                rationale=(
+                    f"Low-pressure environment to meet new people. "
+                    f"{event.get('rsvp_count', 0)} people attending."
+                ),
+                action=(
+                    f"Attend {event['name']} at {event.get('venue', 'local venue')} — "
+                    f"{event.get('date', '')} {event.get('time', '')}."
+                ),
+                suggested_message=None,
+                difficulty="medium",
+                timeframe="this week",
+                registration_link=event.get("registration_link"),
+            )
+        )
 
     # ── Step 4: Rank by difficulty ────────────────────────────────────────
     order = {"low": 0, "medium": 1, "high": 2}
@@ -93,16 +100,18 @@ def generate_plan(
     # ── Step 5: Weekly goal ───────────────────────────────────────────────
     n_actions = min(len(actions), 2)
     if drifted:
-        goal = f"Reach out to {drifted[0].name}" + (
-            f" and {drifted[1].name}" if len(drifted) > 1 else ""
-        ) + " this week."
+        goal = (
+            f"Reach out to {drifted[0].name}"
+            + (f" and {drifted[1].name}" if len(drifted) > 1 else "")
+            + " this week."
+        )
     elif events:
         goal = f"Attend {events[0]['name']} and report back next session."
     else:
         goal = f"Complete {n_actions} social action{'s' if n_actions != 1 else ''} this week."
 
     return ReconnectionPlan(
-        priority_actions=actions[:4],   # hard cap at 4
+        priority_actions=actions[:4],  # hard cap at 4
         weekly_goal=goal,
     )
 
@@ -132,12 +141,20 @@ def generate_structured_action_response(
         )
         action_text = f"Send this message to {target_name} now."
     else:
-        person = {"name": "someone you trust", "priority_score": 0.4, "reason": "No clear relationship extracted yet"}
+        person = {
+            "name": "someone you trust",
+            "priority_score": 0.4,
+            "reason": "No clear relationship extracted yet",
+        }
         target_name = person["name"]
-        drafted_message = "Hey, it has been a while. Want to catch up for 15 minutes this week?"
+        drafted_message = (
+            "Hey, it has been a while. Want to catch up for 15 minutes this week?"
+        )
         action_text = "Send this message now to one person you trust."
 
-    resilience = generate_resilience_block(target_name, drafted_message, backend=backend)
+    resilience = generate_resilience_block(
+        target_name, drafted_message, backend=backend
+    )
 
     return {
         "priority_person": person,

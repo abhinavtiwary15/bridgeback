@@ -1,15 +1,24 @@
 """Tests for NLP layer (no API keys needed)."""
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from nlp.loneliness_scorer import score_loneliness, score_to_band
-from nlp.drift_detector import detect_drift_signals, detect_anxiety_markers, classify_connection_need
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from nlp.crisis_detector import build_crisis_response, detect_crisis
+from nlp.drift_detector import (
+    classify_connection_need,
+    detect_anxiety_markers,
+    detect_drift_signals,
+)
 from nlp.entity_extractor import extract_person_names
-from nlp.crisis_detector import detect_crisis, build_crisis_response
+from nlp.loneliness_scorer import score_loneliness, score_to_band
 
 
 def test_loneliness_high():
-    text = "I feel so alone. I haven't spoken to anyone in weeks. I miss my old friends."
+    text = (
+        "I feel so alone. I haven't spoken to anyone in weeks. I miss my old friends."
+    )
     score = score_loneliness(text, use_bert=False)
     assert score > 50, f"Expected >50, got {score}"
 

@@ -8,10 +8,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from data.database import create_action_task, get_action_tasks, init_db
 from services.accountability_service import (
-    parse_checkin_reply,
     apply_checkin_reply,
     generate_micro_step,
     infer_blocker_category,
+    parse_checkin_reply,
 )
 
 

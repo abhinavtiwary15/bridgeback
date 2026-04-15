@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 import api.main as api_main
 from data.database import create_action_task
 
-
 client = TestClient(api_main.app)
 
 
@@ -48,7 +47,12 @@ def test_plan_and_action_update_flow():
 
     complete_response = client.post(
         "/plan/action",
-        json={"user_id": user_id, "action_id": action_id, "status": "completed", "blocker_reason": ""},
+        json={
+            "user_id": user_id,
+            "action_id": action_id,
+            "status": "completed",
+            "blocker_reason": "",
+        },
     )
     assert complete_response.status_code == 200
     assert complete_response.json()["status"] == "completed"

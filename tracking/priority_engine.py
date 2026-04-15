@@ -8,7 +8,9 @@ from typing import Dict, List
 def _score_relationship(signal: dict) -> tuple[float, str]:
     name = signal.get("name", "")
     status = signal.get("status", "unknown")
-    context = (signal.get("context") or signal.get("last_mentioned_context") or "").lower()
+    context = (
+        signal.get("context") or signal.get("last_mentioned_context") or ""
+    ).lower()
     mention_count = int(signal.get("mention_count", 1) or 1)
 
     emotional_importance = min(1.0, mention_count / 5.0)
@@ -17,12 +19,14 @@ def _score_relationship(signal: dict) -> tuple[float, str]:
     active_penalty = 0.35 if status == "active" else 1.0
 
     weighted = (
-        0.45 * emotional_importance
-        + 0.35 * drift_severity
-        + 0.20 * recency_penalty
+        0.45 * emotional_importance + 0.35 * drift_severity + 0.20 * recency_penalty
     ) * active_penalty
 
-    reason = "High emotional importance + long drift" if status == "drifted" else "Meaningful person with reconnection potential"
+    reason = (
+        "High emotional importance + long drift"
+        if status == "drifted"
+        else "Meaningful person with reconnection potential"
+    )
     if not name:
         reason = "Insufficient relationship data"
     return max(0.0, min(1.0, weighted)), reason

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-import streamlit as st
-import streamlit.components.v1 as components
 import html
 
+import streamlit as st
+import streamlit.components.v1 as components
 
-def render_structured_action_ui(structured_data: dict, user_id: str = "default") -> bool:
+
+def render_structured_action_ui(
+    structured_data: dict, user_id: str = "default"
+) -> bool:
     """
     Render priority person, action, message, resilience scenarios.
     Returns True when user clicks mark-done.

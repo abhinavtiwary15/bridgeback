@@ -6,12 +6,15 @@ No API key required for Nominatim.
 """
 
 from __future__ import annotations
+
+from typing import Dict, List, Optional
+
 import requests
-from typing import List, Dict, Optional
+
 from config import MEETUP_API_KEY, USER_LOCATION
 
-
 # ── Geocoding (Nominatim / OpenStreetMap — free, no key) ──────────────────────
+
 
 def geocode_location(location_str: str) -> Optional[Dict]:
     """
@@ -26,8 +29,8 @@ def geocode_location(location_str: str) -> Optional[Dict]:
         data = r.json()
         if data:
             return {
-                "lat":          float(data[0]["lat"]),
-                "lon":          float(data[0]["lon"]),
+                "lat": float(data[0]["lat"]),
+                "lon": float(data[0]["lon"]),
                 "display_name": data[0]["display_name"],
             }
     except Exception:
@@ -38,22 +41,22 @@ def geocode_location(location_str: str) -> Optional[Dict]:
 # ── Meetup API ─────────────────────────────────────────────────────────────────
 
 _INTEREST_TO_TOPICS = {
-    "board games":    ["board-games", "games"],
-    "hiking":         ["hiking", "outdoors"],
-    "reading":        ["book-clubs", "literature"],
-    "coding":         ["tech", "software-development"],
-    "yoga":           ["yoga", "wellness"],
-    "photography":    ["photography"],
-    "music":          ["music"],
-    "art":            ["arts-culture"],
-    "cooking":        ["food-and-drink"],
-    "running":        ["running"],
-    "language":       ["language-learning"],
-    "meditation":     ["meditation", "mindfulness"],
-    "volunteering":   ["community", "volunteering"],
-    "sports":         ["sports-recreation"],
-    "films":          ["film", "cinema"],
-    "travel":         ["travel"],
+    "board games": ["board-games", "games"],
+    "hiking": ["hiking", "outdoors"],
+    "reading": ["book-clubs", "literature"],
+    "coding": ["tech", "software-development"],
+    "yoga": ["yoga", "wellness"],
+    "photography": ["photography"],
+    "music": ["music"],
+    "art": ["arts-culture"],
+    "cooking": ["food-and-drink"],
+    "running": ["running"],
+    "language": ["language-learning"],
+    "meditation": ["meditation", "mindfulness"],
+    "volunteering": ["community", "volunteering"],
+    "sports": ["sports-recreation"],
+    "films": ["film", "cinema"],
+    "travel": ["travel"],
 }
 
 
@@ -67,12 +70,12 @@ def _get_meetup_events(lat: float, lon: float, topics: List[str]) -> List[Dict]:
 
     for topic in topics[:3]:  # limit API calls
         params = {
-            "key":       MEETUP_API_KEY,
-            "lat":       lat,
-            "lon":       lon,
-            "radius":    10,          # km
+            "key": MEETUP_API_KEY,
+            "lat": lat,
+            "lon": lon,
+            "radius": 10,  # km
             "topic_category": topic,
-            "page":      5,
+            "page": 5,
         }
         try:
             r = requests.get(url, params=params, timeout=8)
@@ -90,15 +93,15 @@ def _format_event(event: Dict) -> Dict:
     venue = event.get("venue", {})
     group = event.get("group", {})
     return {
-        "name":              event.get("name", "Community Event"),
-        "group_name":        group.get("name", ""),
-        "date":              event.get("local_date", ""),
-        "time":              event.get("local_time", ""),
-        "venue":             venue.get("name", ""),
-        "city":              venue.get("city", ""),
-        "rsvp_count":        event.get("yes_rsvp_count", 0),
+        "name": event.get("name", "Community Event"),
+        "group_name": group.get("name", ""),
+        "date": event.get("local_date", ""),
+        "time": event.get("local_time", ""),
+        "venue": venue.get("name", ""),
+        "city": venue.get("city", ""),
+        "rsvp_count": event.get("yes_rsvp_count", 0),
         "registration_link": event.get("link", ""),
-        "description":       event.get("description", "")[:200],
+        "description": event.get("description", "")[:200],
     }
 
 
@@ -106,42 +109,43 @@ def _format_event(event: Dict) -> Dict:
 
 _MOCK_EVENTS = [
     {
-        "name":              "Board Game Night",
-        "group_name":        "Local Board Gamers",
-        "date":              "This Thursday",
-        "time":              "7:00 PM",
-        "venue":             "Community Café",
-        "city":              USER_LOCATION or "your city",
-        "rsvp_count":        12,
+        "name": "Board Game Night",
+        "group_name": "Local Board Gamers",
+        "date": "This Thursday",
+        "time": "7:00 PM",
+        "venue": "Community Café",
+        "city": USER_LOCATION or "your city",
+        "rsvp_count": 12,
         "registration_link": "https://www.meetup.com",
-        "description":       "Casual board game evening. All skill levels welcome.",
+        "description": "Casual board game evening. All skill levels welcome.",
     },
     {
-        "name":              "Weekend Hiking Group",
-        "group_name":        "City Hikers",
-        "date":              "This Sunday",
-        "time":              "8:00 AM",
-        "venue":             "Central Park / Nearest Trail",
-        "city":              USER_LOCATION or "your city",
-        "rsvp_count":        8,
+        "name": "Weekend Hiking Group",
+        "group_name": "City Hikers",
+        "date": "This Sunday",
+        "time": "8:00 AM",
+        "venue": "Central Park / Nearest Trail",
+        "city": USER_LOCATION or "your city",
+        "rsvp_count": 8,
         "registration_link": "https://www.meetup.com",
-        "description":       "Easy 5km morning hike, perfect for meeting people.",
+        "description": "Easy 5km morning hike, perfect for meeting people.",
     },
     {
-        "name":              "Book Club Monthly Meeting",
-        "group_name":        "The Reading Circle",
-        "date":              "Next Saturday",
-        "time":              "4:00 PM",
-        "venue":             "Public Library",
-        "city":              USER_LOCATION or "your city",
-        "rsvp_count":        6,
+        "name": "Book Club Monthly Meeting",
+        "group_name": "The Reading Circle",
+        "date": "Next Saturday",
+        "time": "4:00 PM",
+        "venue": "Public Library",
+        "city": USER_LOCATION or "your city",
+        "rsvp_count": 6,
         "registration_link": "https://www.meetup.com",
-        "description":       "Low-key, friendly book discussion. New members welcome.",
+        "description": "Low-key, friendly book discussion. New members welcome.",
     },
 ]
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def find_events(
     interests: List[str],

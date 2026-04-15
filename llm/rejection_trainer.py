@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import json
 
-from config import DEFAULT_LLM, ANTHROPIC_API_KEY, OPENAI_API_KEY, CLAUDE_MODEL, OPENAI_MODEL
+from config import (
+    ANTHROPIC_API_KEY,
+    CLAUDE_MODEL,
+    DEFAULT_LLM,
+    OPENAI_API_KEY,
+    OPENAI_MODEL,
+)
 
 _SYSTEM = """
 You are a practical social confidence coach.
@@ -29,27 +35,29 @@ def _fallback(person_name: str) -> dict:
         "scenarios": [
             {
                 "type": "positive",
-                "example_reply": f"Hey! Great to hear from you. Let's meet this week.",
+                "example_reply": "Hey! Great to hear from you. Let's meet this week.",
                 "meaning": f"{person_name} is open to reconnecting.",
-                "next_step": "Confirm a simple time and place."
+                "next_step": "Confirm a simple time and place.",
             },
             {
                 "type": "neutral",
                 "example_reply": "Hey, busy this week. Maybe later.",
                 "meaning": "Not a rejection, just low availability.",
-                "next_step": "Reply once with a low-pressure option for next week."
+                "next_step": "Reply once with a low-pressure option for next week.",
             },
             {
                 "type": "no_response",
                 "example_reply": "No reply for several days.",
                 "meaning": "Silence is data, not proof of failure.",
-                "next_step": "Wait 5-7 days, send one gentle follow-up, then move to another person."
+                "next_step": "Wait 5-7 days, send one gentle follow-up, then move to another person.",
             },
         ],
     }
 
 
-def generate_resilience_block(person_name: str, message: str, backend: str = DEFAULT_LLM) -> dict:
+def generate_resilience_block(
+    person_name: str, message: str, backend: str = DEFAULT_LLM
+) -> dict:
     prompt = (
         f"Person name: {person_name}\n"
         f"Draft message: {message}\n"
@@ -58,15 +66,20 @@ def generate_resilience_block(person_name: str, message: str, backend: str = DEF
     try:
         if backend == "openai" and OPENAI_API_KEY:
             from openai import OpenAI
+
             client = OpenAI(api_key=OPENAI_API_KEY)
             resp = client.chat.completions.create(
                 model=OPENAI_MODEL,
                 max_tokens=500,
-                messages=[{"role": "system", "content": _SYSTEM}, {"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": _SYSTEM},
+                    {"role": "user", "content": prompt},
+                ],
             )
             text = resp.choices[0].message.content
         elif ANTHROPIC_API_KEY:
             import anthropic
+
             client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
             resp = client.messages.create(
                 model=CLAUDE_MODEL,

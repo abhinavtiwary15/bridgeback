@@ -5,10 +5,12 @@ relationship health, and generates weekly insights.
 """
 
 from __future__ import annotations
-from typing import List, Dict, Optional
+
 import json
 import logging
-from data.database import get_sessions, get_or_create_profile, get_action_status_counts
+from typing import Dict, List, Optional
+
+from data.database import get_action_status_counts, get_or_create_profile, get_sessions
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +24,11 @@ def get_score_history(user_id: str = "default") -> List[Dict]:
     sessions_sorted = sorted(sessions, key=lambda s: s.timestamp)
     return [
         {
-            "session_num":  i + 1,
-            "score":        s.loneliness_score,
-            "date":         s.timestamp.strftime("%b %d"),
-            "connections":  s.actions_completed,
-            "crisis":       s.crisis_flagged,
+            "session_num": i + 1,
+            "score": s.loneliness_score,
+            "date": s.timestamp.strftime("%b %d"),
+            "connections": s.actions_completed,
+            "crisis": s.crisis_flagged,
         }
         for i, s in enumerate(sessions_sorted)
     ]
@@ -92,7 +94,9 @@ def generate_weekly_insight(user_id: str = "default") -> str:
         if delta > 0:
             insight_parts.append(f"Your loneliness score dropped {delta} points. 🎉")
         elif delta < 0:
-            insight_parts.append(f"Your score rose {abs(delta)} points — let's focus on that.")
+            insight_parts.append(
+                f"Your score rose {abs(delta)} points — let's focus on that."
+            )
         else:
             insight_parts.append("Your score held steady.")
 
@@ -102,7 +106,9 @@ def generate_weekly_insight(user_id: str = "default") -> str:
 
     action_counts = get_action_status_counts(user_id)
     if action_counts["blocked"] > 0:
-        insight_parts.append(f"{action_counts['blocked']} action(s) are blocked; complete one micro-step today.")
+        insight_parts.append(
+            f"{action_counts['blocked']} action(s) are blocked; complete one micro-step today."
+        )
 
     return " ".join(insight_parts)
 
@@ -120,18 +126,25 @@ def get_relationship_health_map(user_id: str = "default") -> List[Dict]:
             profile_data = json.loads(s.nlp_profile_json or "{}")
             signals = profile_data.get("relationship_signals", [])
             for sig in signals:
-                name   = sig.get("name", "")
+                name = sig.get("name", "")
                 status = sig.get("status", "unknown")
-                ctx    = sig.get("last_mentioned_context", "")
+                ctx = sig.get("last_mentioned_context", "")
                 if name:
                     if name not in relationships:
-                        relationships[name] = {"name": name, "status": status,
-                                               "context": ctx, "mentions": 0}
+                        relationships[name] = {
+                            "name": name,
+                            "status": status,
+                            "context": ctx,
+                            "mentions": 0,
+                        }
                     relationships[name]["mentions"] += 1
                     # latest status wins
                     relationships[name]["status"] = status
         except json.JSONDecodeError:
-            logger.warning("Invalid nlp_profile_json for session %s", getattr(s, "session_id", "unknown"))
+            logger.warning(
+                "Invalid nlp_profile_json for session %s",
+                getattr(s, "session_id", "unknown"),
+            )
             continue
 
     return list(relationships.values())

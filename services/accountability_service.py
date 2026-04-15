@@ -2,21 +2,19 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 from data.database import (
-    get_latest_pending_action,
-    complete_action_task,
-    block_action_task,
-    create_reminder_event,
-    get_device_tokens,
-    get_db,
     DBUser,
     SessionLocal,
+    block_action_task,
+    complete_action_task,
+    create_reminder_event,
+    get_device_tokens,
+    get_latest_pending_action,
 )
-from services.notification_service import send_telegram_message, send_push_notification
-
+from services.notification_service import send_push_notification, send_telegram_message
 
 BLOCKER_MICRO_STEPS = {
     "fear_of_rejection": "Send a two-line low-pressure message: 'Hey, thought of you today. No pressure to reply quickly.'",

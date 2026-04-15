@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import html
-import streamlit as st
-import plotly.graph_objects as go
 
+import plotly.graph_objects as go
+import streamlit as st
+
+from data.database import get_action_status_counts, get_reminder_events
 from tracking.tracker import (
+    generate_weekly_insight,
+    get_relationship_health_map,
     get_score_history,
     get_streak,
     get_total_connections,
-    generate_weekly_insight,
-    get_relationship_health_map,
 )
-from data.database import get_action_status_counts, get_reminder_events
 
 
 def render_progress_tab(user_id: str, current_score: int | None) -> None:
@@ -51,7 +52,10 @@ def render_progress_tab(user_id: str, current_score: int | None) -> None:
             unsafe_allow_html=True,
         )
 
-    st.markdown(f"<div class='insight-box'>💡 {html.escape(insight)}</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='insight-box'>💡 {html.escape(insight)}</div>",
+        unsafe_allow_html=True,
+    )
     st.caption(
         f"Action lifecycle: {action_counts['completed']} completed, "
         f"{action_counts['pending']} pending, {action_counts['blocked']} blocked."
@@ -72,7 +76,12 @@ def render_progress_tab(user_id: str, current_score: int | None) -> None:
                 name="Loneliness score",
             )
         )
-        fig.add_hline(y=20, line_dash="dot", line_color="#4a7c59", annotation_text="Goal: below 20")
+        fig.add_hline(
+            y=20,
+            line_dash="dot",
+            line_color="#4a7c59",
+            annotation_text="Goal: below 20",
+        )
         fig.update_layout(
             yaxis=dict(range=[0, 100], title="Score"),
             xaxis=dict(title="Session"),

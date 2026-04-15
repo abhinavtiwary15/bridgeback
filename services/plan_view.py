@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import html
+
 import streamlit as st
 
-from data.models import ReconnectionPlan, NLPProfile
-from data.database import get_action_tasks, complete_action_task, block_action_task
+from data.database import block_action_task, complete_action_task, get_action_tasks
+from data.models import NLPProfile, ReconnectionPlan
 from services.accountability_service import generate_micro_step
 
 
-def render_plan_tab(plan: ReconnectionPlan | None, profile: NLPProfile | None, user_id: str = "default") -> None:
+def render_plan_tab(
+    plan: ReconnectionPlan | None, profile: NLPProfile | None, user_id: str = "default"
+) -> None:
     if not plan:
-        st.info("Complete a coaching session to generate your personalised reconnection plan.")
+        st.info(
+            "Complete a coaching session to generate your personalised reconnection plan."
+        )
         return
 
     action_rows = get_action_tasks(user_id=user_id, limit=200)
@@ -32,7 +37,11 @@ def render_plan_tab(plan: ReconnectionPlan | None, profile: NLPProfile | None, u
         card_class = "action-card" if is_reach else "action-card event"
         icon = "👤" if is_reach else "📍"
         diff_color = "#2e7a2e" if action.difficulty == "low" else "#a04400"
-        status_color = {"completed": "#2e7a2e", "blocked": "#b83a3a", "pending": "#8a6800"}.get(status, "#8a6800")
+        status_color = {
+            "completed": "#2e7a2e",
+            "blocked": "#b83a3a",
+            "pending": "#8a6800",
+        }.get(status, "#8a6800")
         suggested = (
             f"<div class='suggested-msg'>💬 \"{html.escape(action.suggested_message)}\"</div>"
             if action.suggested_message
@@ -54,7 +63,11 @@ def render_plan_tab(plan: ReconnectionPlan | None, profile: NLPProfile | None, u
         )
         c1, c2 = st.columns([1, 3])
         with c1:
-            if row and status != "completed" and st.button("Mark done", key=f"done_{i}_{row.action_id}"):
+            if (
+                row
+                and status != "completed"
+                and st.button("Mark done", key=f"done_{i}_{row.action_id}")
+            ):
                 complete_action_task(row.action_id, user_id=user_id)
                 st.success("Great work. Action marked as completed.")
                 st.rerun()
@@ -65,9 +78,16 @@ def render_plan_tab(plan: ReconnectionPlan | None, profile: NLPProfile | None, u
                     key=f"blocker_{i}_{row.action_id}",
                     placeholder="Example: I am anxious they may not reply.",
                 )
-                if blocker and st.button("Save blocker + micro-step", key=f"save_blocker_{i}_{row.action_id}"):
+                if blocker and st.button(
+                    "Save blocker + micro-step", key=f"save_blocker_{i}_{row.action_id}"
+                ):
                     micro_step = generate_micro_step(blocker)
-                    block_action_task(row.action_id, blocker_reason=blocker, micro_step=micro_step, user_id=user_id)
+                    block_action_task(
+                        row.action_id,
+                        blocker_reason=blocker,
+                        micro_step=micro_step,
+                        user_id=user_id,
+                    )
                     st.info(f"Micro-step: {micro_step}")
                     st.rerun()
 
@@ -85,7 +105,7 @@ def render_plan_tab(plan: ReconnectionPlan | None, profile: NLPProfile | None, u
                     <div style='background:#f9f7f2;border:0.5px solid #ddd;border-radius:10px;padding:10px;'>
                       <strong>{html.escape(rel.name)}</strong><br/>
                       <span style='color:{status_color};font-size:0.85em;'>
-                        {'⚠ Drifted' if rel.status == 'drifted' else '✓ Active'}
+                        {"⚠ Drifted" if rel.status == "drifted" else "✓ Active"}
                       </span><br/>
                       <span style='font-size:0.8em;color:#888;'>{html.escape(rel.last_mentioned_context)}</span>
                     </div>

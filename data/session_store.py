@@ -4,8 +4,9 @@ Per-user in-memory + DB session management helpers.
 """
 
 from __future__ import annotations
+
 from typing import Dict, List
-from data.models import Message
+
 from data.database import get_messages, save_message
 
 

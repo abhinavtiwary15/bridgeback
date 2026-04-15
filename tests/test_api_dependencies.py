@@ -3,13 +3,13 @@
 import os
 import sys
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from api.dependencies import get_engine_for_user
-from data.database import init_db, save_message, save_session, create_action_task
-from data.models import SessionRecord, NLPProfile, ReconnectionPlan, ReconnectionAction
+from data.database import create_action_task, init_db, save_message, save_session
+from data.models import NLPProfile, ReconnectionAction, ReconnectionPlan, SessionRecord
 
 
 def test_engine_hydrates_history_and_state_from_db():
@@ -18,7 +18,9 @@ def test_engine_hydrates_history_and_state_from_db():
 
     save_message(user_id, "user", "I miss Priya.")
     save_message(user_id, "assistant", "Let's reconnect with Priya.")
-    profile = NLPProfile(loneliness_score=62, relationship_signals=[], action_completed=False)
+    profile = NLPProfile(
+        loneliness_score=62, relationship_signals=[], action_completed=False
+    )
     plan = ReconnectionPlan(
         priority_actions=[
             ReconnectionAction(

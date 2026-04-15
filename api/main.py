@@ -2,40 +2,45 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI
-from fastapi import Request
+import logging
+import time
+from contextlib import asynccontextmanager
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import time
-import logging
 
-from data.database import init_db
-from logging_config import setup_logging
-from config import CORS_ORIGINS, API_AUTH_TOKEN
-from api.routers.health import router as health_router
-from api.routers.chat import router as chat_router
-from api.routers.plan import router as plan_router
-from api.routers.blocker import router as blocker_router
-from api.routers.progress import router as progress_router
-from api.routers.notifications import router as notifications_router
 from api.routers.auth import router as auth_router
-
-from contextlib import asynccontextmanager
-from apscheduler.schedulers.background import BackgroundScheduler
-from data.database import SessionLocal, DBActionTask
+from api.routers.blocker import router as blocker_router
+from api.routers.chat import router as chat_router
+from api.routers.health import router as health_router
+from api.routers.notifications import router as notifications_router
+from api.routers.plan import router as plan_router
+from api.routers.progress import router as progress_router
+from config import API_AUTH_TOKEN, CORS_ORIGINS
+from data.database import DBActionTask, SessionLocal, init_db
+from logging_config import setup_logging
 from services.accountability_service import send_pending_action_checkin
 
 scheduler = BackgroundScheduler()
+
 
 def process_reminders():
     logger.info("Running background reminder check...")
     try:
         with SessionLocal() as db:
-            pending_users = db.query(DBActionTask.user_id).filter(DBActionTask.status == "pending").distinct().all()
+            pending_users = (
+                db.query(DBActionTask.user_id)
+                .filter(DBActionTask.status == "pending")
+                .distinct()
+                .all()
+            )
             for (uid,) in pending_users:
                 send_pending_action_checkin(user_id=uid)
     except Exception as e:
         logger.error(f"Error in background scheduler: {e}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,6 +48,7 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     yield
     scheduler.shutdown()
+
 
 setup_logging()
 init_db()
@@ -52,7 +58,9 @@ logger = logging.getLogger("bridgeback.api")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in CORS_ORIGINS.split(",") if origin.strip()],
+    allow_origins=[
+        origin.strip() for origin in CORS_ORIGINS.split(",") if origin.strip()
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

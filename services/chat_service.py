@@ -5,21 +5,21 @@ Keeps Streamlit UI layer thin by handling chat orchestration and persistence.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, UTC
 import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Tuple
 
 from data.database import (
+    create_action_task,
+    increment_connections,
     save_message,
     save_session,
     update_profile_score,
-    increment_connections,
-    create_action_task,
 )
-from data.models import SessionRecord, LLMResponse
-from services.interfaces import ChatEngine
+from data.models import LLMResponse, SessionRecord
 from services.accountability_service import send_pending_action_checkin
+from services.interfaces import ChatEngine
 
 
 @dataclass
@@ -30,7 +30,9 @@ class ChatProcessResult:
     connection_count: int
 
 
-def process_user_message(engine: ChatEngine, user_id: str, user_text: str) -> Tuple[ChatProcessResult, LLMResponse]:
+def process_user_message(
+    engine: ChatEngine, user_id: str, user_text: str
+) -> Tuple[ChatProcessResult, LLMResponse]:
     """
     Process one user message end-to-end.
     - stores user + assistant messages
@@ -43,7 +45,10 @@ def process_user_message(engine: ChatEngine, user_id: str, user_text: str) -> Tu
     save_message(user_id, "assistant", response.text)
 
     score = None
-    if response.updated_profile and response.updated_profile.loneliness_score is not None:
+    if (
+        response.updated_profile
+        and response.updated_profile.loneliness_score is not None
+    ):
         score = response.updated_profile.loneliness_score
         update_profile_score(user_id, score)
 
@@ -55,7 +60,9 @@ def process_user_message(engine: ChatEngine, user_id: str, user_text: str) -> Tu
 
     connection_notes = []
     if connection_count > 0:
-        connection_notes = [f"Reported {connection_count} completed connection(s) this session"]
+        connection_notes = [
+            f"Reported {connection_count} completed connection(s) this session"
+        ]
 
     save_session(
         SessionRecord(
@@ -67,7 +74,11 @@ def process_user_message(engine: ChatEngine, user_id: str, user_text: str) -> Tu
             actions_completed=connection_count,
             actions_pending=[
                 action.action
-                for action in (response.updated_plan.priority_actions if response.updated_plan else [])
+                for action in (
+                    response.updated_plan.priority_actions
+                    if response.updated_plan
+                    else []
+                )
             ],
             crisis_flagged=response.mode == "CRISIS",
             nlp_profile=response.updated_profile,

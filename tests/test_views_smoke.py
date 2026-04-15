@@ -5,7 +5,12 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from data.models import NLPProfile, ReconnectionAction, ReconnectionPlan, RelationshipSignal
+from data.models import (
+    NLPProfile,
+    ReconnectionAction,
+    ReconnectionPlan,
+    RelationshipSignal,
+)
 from services import plan_view, progress_view
 
 
@@ -97,8 +102,16 @@ def test_render_progress_tab_smoke(monkeypatch):
     monkeypatch.setattr(
         progress_view,
         "get_relationship_health_map",
-        lambda _user_id: [{"name": "Rahul", "status": "active", "context": "Spoke yesterday"}],
+        lambda _user_id: [
+            {"name": "Rahul", "status": "active", "context": "Spoke yesterday"}
+        ],
     )
-    monkeypatch.setattr(progress_view, "get_action_status_counts", lambda _user_id: {"completed": 2, "pending": 1, "blocked": 0})
-    monkeypatch.setattr(progress_view, "get_reminder_events", lambda _user_id, limit=200: [])
+    monkeypatch.setattr(
+        progress_view,
+        "get_action_status_counts",
+        lambda _user_id: {"completed": 2, "pending": 1, "blocked": 0},
+    )
+    monkeypatch.setattr(
+        progress_view, "get_reminder_events", lambda _user_id, limit=200: []
+    )
     progress_view.render_progress_tab(user_id="default", current_score=55)

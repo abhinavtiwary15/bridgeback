@@ -4,30 +4,36 @@ Pydantic models shared across all layers.
 """
 
 from __future__ import annotations
-from datetime import datetime, UTC
-from typing import List, Optional, Literal
-from pydantic import BaseModel, Field
-import uuid
 
+import uuid
+from datetime import UTC, datetime
+from typing import List, Literal, Optional
+
+from pydantic import BaseModel, Field
 
 # ── User Auth Models ────────────────────────────────────────────────────────────
+
 
 class UserCreate(BaseModel):
     username: str
     password: str
     telegram_chat_id: Optional[str] = None
 
+
 class UserOut(BaseModel):
     id: str
     username: str
     telegram_chat_id: Optional[str] = None
     created_at: datetime
-    
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 # ── Relationship ──────────────────────────────────────────────────────────────
+
 
 class RelationshipSignal(BaseModel):
     name: str
@@ -38,14 +44,19 @@ class RelationshipSignal(BaseModel):
 
 # ── NLP Profile (Layer 1 output) ──────────────────────────────────────────────
 
+
 class NLPProfile(BaseModel):
     loneliness_score: int = Field(0, ge=0, le=100)
     relationship_signals: List[RelationshipSignal] = Field(default_factory=list)
     drift_signals: List[str] = Field(default_factory=list)
     social_anxiety_markers: List[str] = Field(default_factory=list)
     connection_need_type: Literal[
-        "deep_friendship", "community_belonging",
-        "family_reconnection", "romantic", "professional", "unknown"
+        "deep_friendship",
+        "community_belonging",
+        "family_reconnection",
+        "romantic",
+        "professional",
+        "unknown",
     ] = "unknown"
     connections_reported_count: int = Field(0, ge=0)
     last_action_assigned: str = ""
@@ -55,6 +66,7 @@ class NLPProfile(BaseModel):
 
 
 # ── Reconnection Action (Layer 3) ─────────────────────────────────────────────
+
 
 class ReconnectionAction(BaseModel):
     action_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -79,6 +91,7 @@ class ReconnectionPlan(BaseModel):
 
 
 # ── Accountability Models ──────────────────────────────────────────────────────
+
 
 class ActionTask(BaseModel):
     action_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -106,6 +119,7 @@ class ReminderEvent(BaseModel):
 
 # ── Session (Layer 4) ─────────────────────────────────────────────────────────
 
+
 class SessionRecord(BaseModel):
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str = "default"
@@ -125,6 +139,7 @@ class SessionRecord(BaseModel):
 
 # ── Conversation Message ───────────────────────────────────────────────────────
 
+
 class Message(BaseModel):
     role: Literal["user", "assistant"]
     content: str
@@ -132,6 +147,7 @@ class Message(BaseModel):
 
 
 # ── LLM Response wrapper ──────────────────────────────────────────────────────
+
 
 class LLMResponse(BaseModel):
     text: str

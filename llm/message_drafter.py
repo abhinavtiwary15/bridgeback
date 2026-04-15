@@ -5,7 +5,14 @@ Uses the LLM to write personalised drafts given relationship context.
 """
 
 from __future__ import annotations
-from config import DEFAULT_LLM, ANTHROPIC_API_KEY, OPENAI_API_KEY, CLAUDE_MODEL, OPENAI_MODEL
+
+from config import (
+    ANTHROPIC_API_KEY,
+    CLAUDE_MODEL,
+    DEFAULT_LLM,
+    OPENAI_API_KEY,
+    OPENAI_MODEL,
+)
 
 _DRAFTER_SYSTEM = """
 You are a warm, human message-writing assistant.
@@ -47,18 +54,20 @@ def draft_outreach_message(
     try:
         if backend == "openai":
             from openai import OpenAI
+
             client = OpenAI(api_key=OPENAI_API_KEY)
             response = client.chat.completions.create(
                 model=OPENAI_MODEL,
                 max_tokens=150,
                 messages=[
                     {"role": "system", "content": _DRAFTER_SYSTEM},
-                    {"role": "user",   "content": prompt},
+                    {"role": "user", "content": prompt},
                 ],
             )
             return response.choices[0].message.content.strip()
         else:
             import anthropic
+
             client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
             response = client.messages.create(
                 model=CLAUDE_MODEL,

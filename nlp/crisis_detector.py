@@ -5,11 +5,11 @@ If detected, BridgeBack immediately switches to referral mode.
 """
 
 from __future__ import annotations
+
 import re
 from typing import Tuple
 
 from config import CRISIS_KEYWORDS, CRISIS_RESOURCES
-
 
 # ── Patterns ──────────────────────────────────────────────────────────────────
 
@@ -27,12 +27,11 @@ _HOPELESSNESS_PATTERNS = [
     r"i don'?t (want to|wanna) (be here|exist|live)",
 ]
 
-_HOPELESSNESS_RE = re.compile(
-    "|".join(_HOPELESSNESS_PATTERNS), re.IGNORECASE
-)
+_HOPELESSNESS_RE = re.compile("|".join(_HOPELESSNESS_PATTERNS), re.IGNORECASE)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def detect_crisis(text: str) -> Tuple[bool, list[str]]:
     """

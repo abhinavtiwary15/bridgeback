@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Dict
+from typing import Dict, Iterable
 
 from data.models import ReconnectionAction
 
@@ -22,7 +22,9 @@ def _timeframe_bonus(timeframe: str) -> int:
     return 6
 
 
-def score_reconnection_action(action: ReconnectionAction, relationship_status: str = "unknown") -> int:
+def score_reconnection_action(
+    action: ReconnectionAction, relationship_status: str = "unknown"
+) -> int:
     score = 20
     if action.type == "reconnect_person":
         score += 20

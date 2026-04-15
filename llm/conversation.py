@@ -10,27 +10,36 @@ FREE options:
 """
 
 from __future__ import annotations
+
 import json
-import re
-from typing import List, Dict, Any, Optional
 import logging
-from datetime import datetime, UTC
+import re
+from datetime import UTC, datetime
+from typing import Any, Dict, List, Optional
 
 from config import (
+    ANTHROPIC_API_KEY,
+    CLAUDE_MODEL,
     DEFAULT_LLM,
-    GROQ_API_KEY, GROQ_MODEL,
-    GEMINI_API_KEY, GEMINI_MODEL,
-    OLLAMA_URL, OLLAMA_MODEL,
-    ANTHROPIC_API_KEY, CLAUDE_MODEL,
-    OPENAI_API_KEY, OPENAI_MODEL,
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    GROQ_API_KEY,
+    GROQ_MODEL,
     MAX_TOKENS,
+    OLLAMA_MODEL,
+    OLLAMA_URL,
+    OPENAI_API_KEY,
+    OPENAI_MODEL,
+)
+from data.models import (
+    LLMResponse,
+    NLPProfile,
+    ReconnectionAction,
+    ReconnectionPlan,
+    RelationshipSignal,
 )
 from llm.system_prompt import SYSTEM_PROMPT
-from data.models import (
-    LLMResponse, NLPProfile, ReconnectionPlan,
-    ReconnectionAction, RelationshipSignal,
-)
-from nlp.crisis_detector import detect_crisis, build_crisis_response
+from nlp.crisis_detector import build_crisis_response, detect_crisis
 from services.priority_service import assign_priorities
 
 logger = logging.getLogger(__name__)
@@ -50,9 +59,11 @@ def _looks_like_companionship_request(text: str) -> bool:
 
 # ── Backend callers ───────────────────────────────────────────────────────────
 
+
 def _call_groq(messages: List[Dict], system: str) -> str:
     """Groq — FREE tier. Get key at console.groq.com"""
     from groq import Groq
+
     client = Groq(api_key=GROQ_API_KEY)
     full_messages = [{"role": "system", "content": system}] + messages
     response = client.chat.completions.create(
@@ -65,43 +76,40 @@ def _call_groq(messages: List[Dict], system: str) -> str:
 
 def _call_gemini(messages: List[Dict], system: str) -> str:
     """Google Gemini — FREE tier. Get key at aistudio.google.com"""
-    import google.generativeai as genai
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(
-        model_name=GEMINI_MODEL,
-        system_instruction=system,
-    )
-    # Convert to Gemini format
-    history = []
-    last_user_msg = ""
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=GEMINI_API_KEY if GEMINI_API_KEY else "dummy_key_for_testing")
+
+    contents = []
     for msg in messages:
-        if msg["role"] == "user":
-            last_user_msg = msg["content"]
-            if history or len(messages) > 1:
-                history.append({"role": "user", "parts": [msg["content"]]})
-        elif msg["role"] == "assistant":
-            history.append({"role": "model", "parts": [msg["content"]]})
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append(
+            types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])])
+        )
 
-    # Last user message goes to send_message
-    if history and history[-1]["role"] == "user":
-        last_user_msg = history.pop()["parts"][0]
-
-    chat = model.start_chat(history=history)
-    response = chat.send_message(last_user_msg)
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+        ),
+    )
     return response.text
 
 
 def _call_ollama(messages: List[Dict], system: str) -> str:
     """Ollama — 100% local, completely free. Install from ollama.ai"""
     import requests
+
     full_messages = [{"role": "system", "content": system}] + messages
     response = requests.post(
         f"{OLLAMA_URL}/api/chat",
         json={
-            "model":    OLLAMA_MODEL,
+            "model": OLLAMA_MODEL,
             "messages": full_messages,
-            "stream":   False,
-            "options":  {"num_predict": MAX_TOKENS},
+            "stream": False,
+            "options": {"num_predict": MAX_TOKENS},
         },
         timeout=120,
     )
@@ -111,27 +119,33 @@ def _call_ollama(messages: List[Dict], system: str) -> str:
 
 def _call_claude(messages: List[Dict], system: str) -> str:
     import anthropic
+
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     response = client.messages.create(
-        model=CLAUDE_MODEL, max_tokens=MAX_TOKENS,
-        system=system, messages=messages,
+        model=CLAUDE_MODEL,
+        max_tokens=MAX_TOKENS,
+        system=system,
+        messages=messages,
     )
     return response.content[0].text
 
 
 def _call_openai(messages: List[Dict], system: str) -> str:
     from openai import OpenAI
+
     client = OpenAI(api_key=OPENAI_API_KEY)
     full_messages = [{"role": "system", "content": system}] + messages
     response = client.chat.completions.create(
-        model=OPENAI_MODEL, max_tokens=MAX_TOKENS, messages=full_messages,
+        model=OPENAI_MODEL,
+        max_tokens=MAX_TOKENS,
+        messages=full_messages,
     )
     return response.choices[0].message.content
 
 
 def _call_llm(messages: List[Dict], system: str, backend: str) -> str:
     dispatch = {
-        "groq":   _call_groq,
+        "groq": _call_groq,
         "gemini": _call_gemini,
         "ollama": _call_ollama,
         "claude": _call_claude,
@@ -159,10 +173,11 @@ def get_available_backends() -> List[str]:
 
 # ── JSON parser ───────────────────────────────────────────────────────────────
 
+
 def _parse_llm_json(raw: str) -> Dict[str, Any]:
     cleaned = re.sub(r"```(?:json)?", "", raw).strip().rstrip("`").strip()
     start = cleaned.find("{")
-    end   = cleaned.rfind("}") + 1
+    end = cleaned.rfind("}") + 1
     if start != -1 and end > start:
         cleaned = cleaned[start:end]
     return json.loads(cleaned)
@@ -173,7 +188,9 @@ def _build_nlp_profile(parsed: Dict) -> NLPProfile:
         RelationshipSignal(
             name=r.get("name", ""),
             status=r.get("status", "unknown"),
-            last_mentioned_context=r.get("context", r.get("last_mentioned_context", "")),
+            last_mentioned_context=r.get(
+                "context", r.get("last_mentioned_context", "")
+            ),
         )
         for r in parsed.get("relationship_signals", [])
     ]
@@ -183,7 +200,9 @@ def _build_nlp_profile(parsed: Dict) -> NLPProfile:
         drift_signals=parsed.get("drift_signals", []),
         social_anxiety_markers=parsed.get("social_anxiety_markers", []),
         connection_need_type=parsed.get("connection_need_type", "unknown"),
-        connections_reported_count=max(0, int(parsed.get("connections_reported", 0) or 0)),
+        connections_reported_count=max(
+            0, int(parsed.get("connections_reported", 0) or 0)
+        ),
         crisis_detected=parsed.get("crisis", False),
     )
 
@@ -216,6 +235,7 @@ def _build_plan(parsed: Dict) -> Optional[ReconnectionPlan]:
 
 # ── Conversation Engine ───────────────────────────────────────────────────────
 
+
 class ConversationEngine:
     def __init__(self, backend: str = DEFAULT_LLM):
         self.backend: str = backend
@@ -228,7 +248,10 @@ class ConversationEngine:
 
     def chat(self, user_message: str) -> LLMResponse:
         msg_lower = user_message.lower()
-        if any(token in msg_lower for token in ["done", "completed", "sent it", "i sent", "finished"]):
+        if any(
+            token in msg_lower
+            for token in ["done", "completed", "sent it", "i sent", "finished"]
+        ):
             self.action_completed = True
 
         if not self.action_completed and self.last_action_assigned:
@@ -237,7 +260,12 @@ class ConversationEngine:
                 "Send this now. Come back after you've done it. "
                 "If something is blocking you, tell me in one line and I will reduce friction."
             )
-            return LLMResponse(text=reminder_text, mode="COACHING", updated_profile=self.current_profile, updated_plan=self.current_plan)
+            return LLMResponse(
+                text=reminder_text,
+                mode="COACHING",
+                updated_profile=self.current_profile,
+                updated_plan=self.current_plan,
+            )
 
         # Crisis pre-screen (no LLM needed)
         is_crisis, _ = detect_crisis(user_message)
@@ -247,7 +275,8 @@ class ConversationEngine:
                 mode="CRISIS",
                 updated_profile=NLPProfile(
                     loneliness_score=self.current_profile.loneliness_score
-                    if self.current_profile else 85,
+                    if self.current_profile
+                    else 85,
                     crisis_detected=True,
                 ),
             )
@@ -300,9 +329,9 @@ class ConversationEngine:
         self.history.append({"role": "assistant", "content": raw})
 
         try:
-            parsed  = _parse_llm_json(raw)
+            parsed = _parse_llm_json(raw)
             profile = _build_nlp_profile(parsed)
-            plan    = _build_plan(parsed)
+            plan = _build_plan(parsed)
             self.current_profile = profile
             if plan:
                 self.current_plan = plan
@@ -312,7 +341,10 @@ class ConversationEngine:
                     self.action_timestamp = datetime.now(UTC)
                 message_text = parsed.get("message", raw)
                 if self.last_action_assigned:
-                    message_text = message_text + "\n\nSend this now. Come back after you've done it."
+                    message_text = (
+                        message_text
+                        + "\n\nSend this now. Come back after you've done it."
+                    )
             else:
                 message_text = parsed.get("message", raw)
             return LLMResponse(
@@ -322,7 +354,9 @@ class ConversationEngine:
                 updated_plan=plan,
             )
         except (json.JSONDecodeError, KeyError, TypeError, ValueError):
-            logger.warning("Model response was not valid BridgeBack JSON; returning raw text.")
+            logger.warning(
+                "Model response was not valid BridgeBack JSON; returning raw text."
+            )
             return LLMResponse(text=raw, mode="INTAKE")
 
     def clear_history(self):

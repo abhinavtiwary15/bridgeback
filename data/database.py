@@ -4,69 +4,79 @@ SQLite via SQLAlchemy. Stores sessions, action logs, and user profiles.
 """
 
 from __future__ import annotations
+
 import json
-from datetime import datetime, UTC
-from typing import List, Optional
 import uuid
+from datetime import UTC, datetime
+from typing import List, Optional
 
 from sqlalchemy import (
-    create_engine, Column, String, Integer, Boolean,
-    DateTime, Text, Float, event
+    Boolean,
+    Column,
+    DateTime,
+    Integer,
+    String,
+    Text,
+    create_engine,
+    event,
 )
-from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from config import DATABASE_URL
-from data.models import SessionRecord, NLPProfile, ReconnectionPlan
-
+from data.models import SessionRecord
 
 # ── ORM Base ──────────────────────────────────────────────────────────────────
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class DBUser(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    telegram_chat_id = Column(String, nullable=True) # For telegram bot
+    telegram_chat_id = Column(String, nullable=True)  # For telegram bot
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
 
 class DBSession(Base):
     __tablename__ = "sessions"
-    session_id   = Column(String, primary_key=True)
-    user_id      = Column(String, index=True, default="default")
-    timestamp    = Column(DateTime, default=lambda: datetime.now(UTC))
+    session_id = Column(String, primary_key=True)
+    user_id = Column(String, index=True, default="default")
+    timestamp = Column(DateTime, default=lambda: datetime.now(UTC))
     loneliness_score = Column(Integer, default=0)
-    connections_reported = Column(Text, default="[]")   # JSON list
+    connections_reported = Column(Text, default="[]")  # JSON list
     actions_completed = Column(Integer, default=0)
-    actions_pending  = Column(Text, default="[]")        # JSON list
-    mood_signal      = Column(String, default="neutral")
-    crisis_flagged   = Column(Boolean, default=False)
+    actions_pending = Column(Text, default="[]")  # JSON list
+    mood_signal = Column(String, default="neutral")
+    crisis_flagged = Column(Boolean, default=False)
     nlp_profile_json = Column(Text, default="{}")
-    plan_json        = Column(Text, default="{}")
+    plan_json = Column(Text, default="{}")
 
 
 class DBMessage(Base):
     __tablename__ = "messages"
-    id        = Column(Integer, primary_key=True, autoincrement=True)
-    user_id   = Column(String, index=True, default="default")
-    role      = Column(String)                      # "user" | "assistant"
-    content   = Column(Text)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, index=True, default="default")
+    role = Column(String)  # "user" | "assistant"
+    content = Column(Text)
     timestamp = Column(DateTime, default=lambda: datetime.now(UTC))
 
 
 class DBUserProfile(Base):
     __tablename__ = "user_profiles"
-    user_id           = Column(String, primary_key=True, default="default")
-    location          = Column(String, default="")
-    interests         = Column(Text, default="[]")   # JSON list
-    current_score     = Column(Integer, default=0)
-    baseline_score    = Column(Integer, default=0)
+    user_id = Column(String, primary_key=True, default="default")
+    location = Column(String, default="")
+    interests = Column(Text, default="[]")  # JSON list
+    current_score = Column(Integer, default=0)
+    baseline_score = Column(Integer, default=0)
     total_connections = Column(Integer, default=0)
-    created_at        = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at        = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(
+        DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
 
 
 class DBActionTask(Base):
@@ -113,11 +123,13 @@ engine = (
     else create_engine(DATABASE_URL)
 )
 
+
 # Enable WAL mode for SQLite concurrency
 @event.listens_for(engine, "connect")
 def set_wal(dbapi_conn, _):
     if IS_SQLITE:
         dbapi_conn.execute("PRAGMA journal_mode=WAL")
+
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -137,6 +149,7 @@ def get_db() -> Session:
 
 # ── CRUD helpers ──────────────────────────────────────────────────────────────
 
+
 def save_session(record: SessionRecord) -> None:
     with SessionLocal() as db:
         row = DBSession(
@@ -149,7 +162,9 @@ def save_session(record: SessionRecord) -> None:
             actions_pending=json.dumps(record.actions_pending),
             mood_signal=record.mood_signal,
             crisis_flagged=record.crisis_flagged,
-            nlp_profile_json=record.nlp_profile.model_dump_json() if record.nlp_profile else "{}",
+            nlp_profile_json=record.nlp_profile.model_dump_json()
+            if record.nlp_profile
+            else "{}",
             plan_json=record.plan.model_dump_json() if record.plan else "{}",
         )
         db.merge(row)
@@ -205,11 +220,13 @@ def update_profile_score(user_id: str, score: int) -> None:
             profile.current_score = score
             db.commit()
         else:
-            db.add(DBUserProfile(
-                user_id=user_id,
-                current_score=score,
-                baseline_score=score,
-            ))
+            db.add(
+                DBUserProfile(
+                    user_id=user_id,
+                    current_score=score,
+                    baseline_score=score,
+                )
+            )
             db.commit()
 
 
@@ -229,7 +246,9 @@ def create_action_task(
     due_at: Optional[datetime] = None,
 ) -> None:
     with SessionLocal() as db:
-        existing = db.query(DBActionTask).filter(DBActionTask.action_id == action_id).first()
+        existing = (
+            db.query(DBActionTask).filter(DBActionTask.action_id == action_id).first()
+        )
         if existing:
             return
         row = DBActionTask(
@@ -243,7 +262,9 @@ def create_action_task(
         db.commit()
 
 
-def get_action_tasks(user_id: str = "default", status: Optional[str] = None, limit: int = 100) -> List[DBActionTask]:
+def get_action_tasks(
+    user_id: str = "default", status: Optional[str] = None, limit: int = 100
+) -> List[DBActionTask]:
     with SessionLocal() as db:
         q = db.query(DBActionTask).filter(DBActionTask.user_id == user_id)
         if status:
@@ -263,10 +284,14 @@ def get_latest_pending_action(user_id: str = "default") -> Optional[DBActionTask
 
 def complete_action_task(action_id: str, user_id: str = "default") -> bool:
     with SessionLocal() as db:
-        row = db.query(DBActionTask).filter(
-            DBActionTask.action_id == action_id,
-            DBActionTask.user_id == user_id,
-        ).first()
+        row = (
+            db.query(DBActionTask)
+            .filter(
+                DBActionTask.action_id == action_id,
+                DBActionTask.user_id == user_id,
+            )
+            .first()
+        )
         if not row:
             return False
         row.status = "completed"
@@ -285,10 +310,14 @@ def block_action_task(
     blocker_category: str = "unknown",
 ) -> bool:
     with SessionLocal() as db:
-        row = db.query(DBActionTask).filter(
-            DBActionTask.action_id == action_id,
-            DBActionTask.user_id == user_id,
-        ).first()
+        row = (
+            db.query(DBActionTask)
+            .filter(
+                DBActionTask.action_id == action_id,
+                DBActionTask.user_id == user_id,
+            )
+            .first()
+        )
         if not row:
             return False
         row.status = "blocked"
@@ -322,10 +351,15 @@ def has_completed_action_since_last_session(user_id: str = "default") -> bool:
 
 def has_pending_actions(user_id: str = "default") -> bool:
     with SessionLocal() as db:
-        return db.query(DBActionTask).filter(
-            DBActionTask.user_id == user_id,
-            DBActionTask.status == "pending",
-        ).first() is not None
+        return (
+            db.query(DBActionTask)
+            .filter(
+                DBActionTask.user_id == user_id,
+                DBActionTask.status == "pending",
+            )
+            .first()
+            is not None
+        )
 
 
 def create_reminder_event(
@@ -350,7 +384,9 @@ def create_reminder_event(
         db.commit()
 
 
-def get_reminder_events(user_id: str = "default", limit: int = 100) -> List[DBReminderEvent]:
+def get_reminder_events(
+    user_id: str = "default", limit: int = 100
+) -> List[DBReminderEvent]:
     with SessionLocal() as db:
         return (
             db.query(DBReminderEvent)
@@ -363,9 +399,21 @@ def get_reminder_events(user_id: str = "default", limit: int = 100) -> List[DBRe
 
 def get_action_status_counts(user_id: str = "default") -> dict:
     with SessionLocal() as db:
-        pending = db.query(DBActionTask).filter(DBActionTask.user_id == user_id, DBActionTask.status == "pending").count()
-        completed = db.query(DBActionTask).filter(DBActionTask.user_id == user_id, DBActionTask.status == "completed").count()
-        blocked = db.query(DBActionTask).filter(DBActionTask.user_id == user_id, DBActionTask.status == "blocked").count()
+        pending = (
+            db.query(DBActionTask)
+            .filter(DBActionTask.user_id == user_id, DBActionTask.status == "pending")
+            .count()
+        )
+        completed = (
+            db.query(DBActionTask)
+            .filter(DBActionTask.user_id == user_id, DBActionTask.status == "completed")
+            .count()
+        )
+        blocked = (
+            db.query(DBActionTask)
+            .filter(DBActionTask.user_id == user_id, DBActionTask.status == "blocked")
+            .count()
+        )
         return {"pending": pending, "completed": completed, "blocked": blocked}
 
 

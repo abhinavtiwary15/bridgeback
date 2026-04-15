@@ -9,7 +9,7 @@ httpx>=0.27.0
 
 # ── FREE LLM backends (pick at least one) ────────────────────────────────────
 groq>=0.9.0                    # FREE — console.groq.com
-google-generativeai>=0.7.0     # FREE — aistudio.google.com
+google-genai>=0.1.0             # FREE — aistudio.google.com
 # ollama is local — no pip package needed, just install from ollama.ai
 
 # ── Paid LLM backends (optional) ─────────────────────────────────────────────
@@ -28,6 +28,7 @@ psycopg[binary]>=3.2.1
 # ── Frontend ──────────────────────────────────────────────────────────────────
 streamlit>=1.35.0
 plotly>=5.22.0
+websockets>=11.0.3
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
 numpy>=1.26.0

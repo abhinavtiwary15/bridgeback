@@ -7,11 +7,11 @@ import uuid
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from data.database import (
-    init_db,
-    create_action_task,
-    has_pending_actions,
-    has_completed_action_since_last_session,
     complete_action_task,
+    create_action_task,
+    has_completed_action_since_last_session,
+    has_pending_actions,
+    init_db,
 )
 
 

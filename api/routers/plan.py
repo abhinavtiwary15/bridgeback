@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
-from api.schemas import PlanResponse, PlanActionDTO, ActionUpdateRequest
-from data.database import get_action_tasks, complete_action_task, block_action_task
+from api.schemas import ActionUpdateRequest, PlanActionDTO, PlanResponse
+from data.database import block_action_task, complete_action_task, get_action_tasks
 from services.accountability_service import generate_micro_step
 
 router = APIRouter(prefix="/plan", tags=["plan"])

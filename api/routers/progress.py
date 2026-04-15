@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 
-from api.schemas import ProgressResponse, ProgressPoint
+from api.schemas import ProgressPoint, ProgressResponse
+from data.database import get_action_status_counts
 from tracking.tracker import (
+    generate_weekly_insight,
     get_score_history,
     get_streak,
     get_total_connections,
-    generate_weekly_insight,
 )
-from data.database import get_action_status_counts
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 

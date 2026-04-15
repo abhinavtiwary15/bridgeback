@@ -5,10 +5,10 @@ Falls back to regex heuristics if spaCy model isn't available.
 """
 
 from __future__ import annotations
-import re
-from typing import List, Tuple
-from functools import lru_cache
 
+import re
+from functools import lru_cache
+from typing import List, Tuple
 
 # ── Regex fallback ────────────────────────────────────────────────────────────
 # Catches "my friend Priya", "my brother Rahul", "I was with Deepa" etc.
@@ -23,23 +23,50 @@ _RELATIONSHIP_TRIGGERS = [
     r"(?:haven'?t (?:spoken|talked|seen|heard from|met))\s+(?:with\s+)?([A-Z][a-z]+)",
 ]
 
-_REGEX_PERSON = re.compile(
-    "|".join(_RELATIONSHIP_TRIGGERS)
-)
+_REGEX_PERSON = re.compile("|".join(_RELATIONSHIP_TRIGGERS))
 
 # Common first-name stopwords to filter out false positives
 _STOPWORDS = {
-    "I", "The", "A", "An", "It", "He", "She", "They", "We",
-    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-    "Google", "Facebook", "Instagram", "Twitter", "WhatsApp",
+    "I",
+    "The",
+    "A",
+    "An",
+    "It",
+    "He",
+    "She",
+    "They",
+    "We",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+    "Google",
+    "Facebook",
+    "Instagram",
+    "Twitter",
+    "WhatsApp",
 }
 
 
 @lru_cache(maxsize=1)
 def _get_spacy_model():
     import spacy
+
     return spacy.load("en_core_web_sm")
 
 

@@ -10,7 +10,11 @@ router = APIRouter(prefix="/blocker", tags=["blocker"])
 @router.get("/gate")
 def gate_state(user_id: str = "default"):
     state = get_gate_state(user_id=user_id)
-    return {"active": state.active, "action_id": state.action_id, "action_text": state.action_text}
+    return {
+        "active": state.active,
+        "action_id": state.action_id,
+        "action_text": state.action_text,
+    }
 
 
 @router.post("", response_model=BlockerResponse)

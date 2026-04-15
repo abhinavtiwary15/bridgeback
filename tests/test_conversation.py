@@ -1,18 +1,22 @@
 """Tests for conversation parsing and backend selection."""
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from llm.conversation import _build_nlp_profile, _build_plan, ConversationEngine
+from llm.conversation import ConversationEngine, _build_nlp_profile, _build_plan
 
 
 def test_profile_parses_connections_and_anxiety():
     parsed = {
         "loneliness_score": 64,
         "relationship_signals": [
-            {"name": "Priya", "status": "drifted", "context": "We used to walk together."}
+            {
+                "name": "Priya",
+                "status": "drifted",
+                "context": "We used to walk together.",
+            }
         ],
         "drift_signals": ["we used to"],
         "social_anxiety_markers": ["afraid to reach out"],
@@ -31,7 +35,11 @@ def test_profile_parses_connections_and_anxiety():
 def test_plan_supports_name_fallback():
     parsed = {
         "relationship_signals": [
-            {"name": "Board Game Night", "status": "drifted", "context": "Missed community events."}
+            {
+                "name": "Board Game Night",
+                "status": "drifted",
+                "context": "Missed community events.",
+            }
         ],
         "plan": {
             "priority_actions": [
@@ -45,7 +53,7 @@ def test_plan_supports_name_fallback():
                 }
             ],
             "weekly_goal": "Complete one social action this week.",
-        }
+        },
     }
 
     plan = _build_plan(parsed)
