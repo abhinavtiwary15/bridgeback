@@ -101,7 +101,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "gateway":
         uvicorn.run(app, host="0.0.0.0", port=GATEWAY_PORT)
     else:
-        # 1. Start Streamlit
+        # 1. Start Streamlit (CORS + XSRF must be disabled for reverse-proxy to work)
         st_proc = subprocess.Popen(
             [
                 "streamlit",
@@ -113,8 +113,18 @@ if __name__ == "__main__":
                 "0.0.0.0",
                 "--server.headless",
                 "true",
+                "--server.enableCORS",
+                "false",
+                "--server.enableXsrfProtection",
+                "false",
             ]
         )
+
+        # Wait for Streamlit to be ready before accepting gateway traffic
+        import time
+
+        logger.info("Waiting for Streamlit to start...")
+        time.sleep(8)
 
         # 2. Start FastAPI
         api_proc = subprocess.Popen(
