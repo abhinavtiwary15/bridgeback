@@ -147,7 +147,7 @@ class LocalBackend(Backend):
                 return type(
                     "Res",
                     (object,),
-                    {"status_code": 200, "json": lambda: {"access_token": token}},
+                    {"status_code": 200, "json": staticmethod(lambda: {"access_token": token})},
                 )()
             return type("Res", (object,), {"status_code": 401})()
 
@@ -158,7 +158,7 @@ class LocalBackend(Backend):
                 return type(
                     "Res",
                     (object,),
-                    {"status_code": 400, "json": lambda: {"detail": "User exists"}},
+                    {"status_code": 400, "json": staticmethod(lambda: {"detail": "User exists"})},
                 )()
             hashed = get_password_hash(password)
             user = DBUser(
@@ -183,7 +183,7 @@ class LocalBackend(Backend):
             "structured_data": structured,
             "mode": response.mode,
         }
-        return type("Res", (object,), {"status_code": 200, "json": lambda: data})()
+        return type("Res", (object,), {"status_code": 200, "json": staticmethod(lambda: data)})()
 
     def fetch_plan(self, user_id):
         rows = get_action_tasks(user_id=user_id, limit=100)

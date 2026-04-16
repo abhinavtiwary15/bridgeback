@@ -21,9 +21,17 @@ jobs:
           pip install pytest ruff
       - name: Lint backend
         run: ruff check . --ignore E501
-      - name: Run backend tests
+      - name: Run offline backend tests
         env:
           DATABASE_URL: sqlite:///test_bridgeback.db
           DEFAULT_LLM: gemini
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: pytest tests/ -v --tb=short
+        run: |
+          pytest tests/test_nlp.py \
+                 tests/test_database_tracking.py \
+                 tests/test_no_usage_mode.py \
+                 tests/test_accountability_service.py \
+                 tests/test_api_dependencies.py \
+                 tests/test_priority_engine.py \
+                 tests/test_rejection_trainer.py \
+                 tests/test_views_smoke.py \
+                 -v --tb=short
